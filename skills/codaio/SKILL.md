@@ -38,8 +38,11 @@ confirmed a global install is present and up to date.
 
 ## Authentication
 
-`CODA_API_TOKEN` environment variable is checked first and is the right choice
-for agent contexts. Generate a token at https://coda.io/account.
+`CODA_API_TOKEN` environment variable is checked first and is the clearest
+choice for automation. If it is not set, the CLI also falls back to the token
+saved by `codaio login` in `~/.config/codaio/config.json`, so `codaio`
+commands can authenticate even when raw `curl` or other shell tools do not see
+`CODA_API_TOKEN`. Generate a token at https://coda.io/account.
 
 ```bash
 export CODA_API_TOKEN=your_token_here
@@ -48,7 +51,8 @@ npx codaio@latest whoami   # verify it works
 
 `codaio login` is available for interactive (human) use — it prompts for a
 token and stores it at `~/.config/codaio/config.json`. Don't use it from agent
-scripts; it requires a TTY.
+scripts; it requires a TTY. Reusing config that a human already created is
+fine.
 
 ---
 
@@ -62,7 +66,8 @@ and narrow down:
 npx codaio@latest docs list --all
 
 # 2. Find tables in a doc (use the doc ID from step 1, or extract from URL)
-#    URL: https://coda.io/d/My-Doc_dAbCdEf123  →  docId = dAbCdEf123
+#    URL: https://coda.io/d/My-Doc_dAbCdEf123  →  API docId = AbCdEf123
+#    Full browser URLs also work anywhere the CLI accepts a docId.
 npx codaio@latest tables list <docId> --all
 
 # 3. See columns in a table
@@ -236,7 +241,7 @@ npx codaio@latest docs list --format table
 |--------|---------|------------|
 | 401 | Token missing or invalid | Check `CODA_API_TOKEN`; run `codaio whoami` to verify |
 | 403 | Token lacks permission | Token owner doesn't have access to this doc/table |
-| 404 | Wrong ID or name | Re-run `list` to find the correct ID |
+| 404 | Wrong ID, browser-prefixed doc ID, or name | Re-run `list` to find the correct API ID/name |
 | 429 | Rate limited | Wait before retrying — CLI retries automatically (3 attempts) |
 
 ---
@@ -270,5 +275,10 @@ on those columns will be updated, not inserted. Omit it if you always want new
 rows.
 
 **Extracting doc IDs from URLs** — a Coda URL like
-`https://coda.io/d/My-Doc_dAbCdEf123` has the doc ID after the last underscore:
-`dAbCdEf123`.
+`https://coda.io/d/My-Doc_dAbCdEf123` contains a browser doc segment
+`_dAbCdEf123`, but the API doc ID is `AbCdEf123` (without the leading `d`).
+
+**Bare `d...` strings are ambiguous** — the CLI normalizes full browser URLs,
+but a raw `dAbCdEf123` input is treated literally. If `docs get dAbCdEf123`
+returns 404, use the API doc ID from `docs list --all` (`AbCdEf123`) or pass
+the full browser URL instead.
