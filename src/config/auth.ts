@@ -1,13 +1,12 @@
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { mkdir } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 
 interface CodaConfig {
   token?: string;
 }
 
 const CONFIG_DIR_NAME = "codaio";
-const LEGACY_CONFIG_DIR_NAME = "coda-cli";
 
 function getConfigDir(dirName = CONFIG_DIR_NAME): string {
   return join(homedir(), ".config", dirName);
@@ -17,27 +16,12 @@ function getConfigPath(dirName = CONFIG_DIR_NAME): string {
   return join(getConfigDir(dirName), "config.json");
 }
 
-async function resolveConfigPath(): Promise<string> {
-  const preferredPath = getConfigPath();
-  if (await Bun.file(preferredPath).exists()) {
-    return preferredPath;
-  }
-
-  const legacyPath = getConfigPath(LEGACY_CONFIG_DIR_NAME);
-  if (await Bun.file(legacyPath).exists()) {
-    return legacyPath;
-  }
-
-  return preferredPath;
-}
-
 async function readConfig(): Promise<CodaConfig> {
-  const path = await resolveConfigPath();
-  const file = Bun.file(path);
-  const exists = await file.exists();
-  if (!exists) return {};
+  const path = getConfigPath();
+  if (!(await pathExists(path))) return {};
+
   try {
-    return await file.json() as CodaConfig;
+    return JSON.parse(await readFile(path, "utf8")) as CodaConfig;
   } catch {
     return {};
   }
@@ -45,7 +29,16 @@ async function readConfig(): Promise<CodaConfig> {
 
 async function writeConfig(config: CodaConfig): Promise<void> {
   await mkdir(getConfigDir(), { recursive: true });
-  await Bun.write(getConfigPath(), JSON.stringify(config, null, 2));
+  await writeFile(getConfigPath(), JSON.stringify(config, null, 2), "utf8");
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function getToken(): Promise<string | undefined> {

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "coda-cli",
+      "name": "codaio",
       "dependencies": {
         "commander": "^13.1.0",
       },
