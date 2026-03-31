@@ -1,0 +1,5 @@
+---
+"coda-cli": minor
+---
+
+init
